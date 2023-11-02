@@ -12,6 +12,9 @@ Prior to using the bot the following lines of code must be changed in the main.p
   - The token you are looking for will be listed as the "Header Value".
 - Line 64: Replace `YOUR_DISCORD_BOT_TOKEN` with the token for your Discord bot.
   - If you do not know how to create a Discord bot, instructions on how to do so can be found [here](https://discordpy.readthedocs.io/en/stable/discord.html)
+ 
+Once the above lines have been updated, run the bot and use `!wigle` followed by a username to start getting stats.
+ - For example, `!wigle kavitate`.
 
 # Credits
 The idea for this bot was inspired by the [WiGLE Bot Repo](https://github.com/INIT6Source/WiGLE-bot) made by [INIT6Source](https://github.com/INIT6Source).
