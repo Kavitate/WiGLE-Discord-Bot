@@ -10,7 +10,7 @@ client = commands.Bot(command_prefix = '!', intents=intents)
 
 @client.event
 async def on_ready():
-    print('WiGLE-bot is online.')
+    print('WiGLE stats are online.')
 
 @client.command()
 async def wigle(ctx, arg1):
