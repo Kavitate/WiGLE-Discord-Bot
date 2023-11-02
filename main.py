@@ -39,6 +39,7 @@ async def wigle(ctx, arg1):
   image = ("https://wigle.net"+(response['imageBadgeUrl']))
 
   # Reply back with the scraped data
+  await ctx.message.delete()
   await ctx.send(
       f"**Username:** {username}\n"
       f"**Rank:** {rank}\n"
