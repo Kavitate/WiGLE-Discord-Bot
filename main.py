@@ -57,7 +57,7 @@ async def wigle(ctx, arg1):
       f"**Total WiFi Locations:** {totalWiFiLocations}\n"
       f"**Last Event:** {last}\n"
       f"**First Ever Event:** {first}\n"
-      f"{image}\n"
+      f"{image}"
   )
   return
 
