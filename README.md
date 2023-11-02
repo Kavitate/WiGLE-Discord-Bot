@@ -1,5 +1,9 @@
 <h1 align="center"> WiGLE Discord Bot</h1>
 
+<p align="center">
+  <img src="https://i.imgur.com/CRKolzB.jpg">
+</p>
+
 This Discord bot is used to pull a user's stats from [WiGLE](https://wigle.net/) using WiGLE's API as shown below.
 
 <p align="center">
