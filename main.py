@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import requests
+import inflect
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -12,7 +13,7 @@ async def on_ready():
     print('WiGLE stats are online.')
 
 @client.command()
-async def wigle(ctx, arg1):
+async def user(ctx, arg1):
   req = "https://api.wigle.net/api/v2/stats/user?user={}".format(arg1)
   response = requests.get(req, headers={'Authorization': 'Basic YOUR_WIGLE_API'}).json()
 
@@ -60,5 +61,49 @@ async def wigle(ctx, arg1):
       f"{image}"
   )
   return
+
+@client.command()
+async def grouprank(ctx):
+    req = "https://api.wigle.net/api/v2/stats/group"
+    response = requests.get(req, headers={'Authorization': 'Basic YOUR_WIGLE_API'}).json()
+
+    # Scrape all of the data from the link
+    groups = response['groups']
+
+    # Initialize an empty string to store the rankings
+    rankings = ""
+
+    p = inflect.engine()
+    for i, group in enumerate(groups[:40], 1):
+        groupName = group['groupName']
+        total = group['total']
+        rank = p.ordinal(i)
+        rankings += f"**{rank}:** {groupName} **Total:** {total}\n"
+
+    # Reply back with the scraped data
+    await ctx.message.delete()
+    await ctx.send(f"## Group Rankings\n\n{rankings}")
+
+@client.command()
+async def userrank(ctx):
+    req = "https://api.wigle.net/api/v2/group/groupMembers?groupid=20211008-01234"
+    response = requests.get(req, headers={'Authorization': 'Basic YOUR_WIGLE_API'}).json()
+
+    # Scrape all of the data from the link
+    users = response['users']
+
+    # Initialize an empty string to store the rankings
+    rankings = ""
+
+    p = inflect.engine()
+    for i, user in enumerate(users[:50], 1):
+        username = user['username']
+        discovered = user['discovered']
+        rank = p.ordinal(i)
+        rankings += f"**{rank}:** {username} **Total:** {discovered}\n"
+
+    # Reply back with the scraped data
+    await ctx.message.delete()
+    await ctx.send(f"## User Rankings\n\n{rankings}")
 
 client.run("YOUR_DISCORD_BOT_TOKEN")
