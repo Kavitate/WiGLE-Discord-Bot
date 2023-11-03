@@ -86,7 +86,7 @@ async def grouprank(ctx):
 
 @client.command()
 async def userrank(ctx):
-    req = "https://api.wigle.net/api/v2/group/groupMembers?groupid=20211008-01234"
+    req = "https://api.wigle.net/api/v2/group/groupMembers?groupid=YOUR_GROUP_ID_HERE"
     response = requests.get(req, headers={'Authorization': 'Basic YOUR_WIGLE_API'}).json()
 
     # Scrape all of the data from the link
