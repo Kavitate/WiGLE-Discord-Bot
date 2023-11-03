@@ -26,6 +26,8 @@ You can change the amount of data shown on the group rank and user rank commands
 - For `!grouprank` change line 77 from `40` to however many groups you want the bot to show.
 - For `!userrank` change line 99 from `50` to however many users you want the bot to show.
 
+:warning: Note that neither of these commands are designed to be split for Discord. If you enter a number that would produce an output over Discord's 2,000 character limit, it will not go through.
+
 ## Commands
 Once the above lines have been updated run the bot using the following commands:
 - `!user` followed by a username to get user stats. For example, `!user kavitate`.
