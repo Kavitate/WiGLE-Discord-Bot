@@ -1,0 +1,5 @@
+{
+    "discord_bot_token": "YOUR-TOKEN-HERE",
+    "wigle_api_key": "YOUR-ENCODED-FOR-USE-KEY-HERE",
+    "group_id": "YOUR-GROUP-ID-HERE"
+}
