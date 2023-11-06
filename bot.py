@@ -246,12 +246,12 @@ async def wifisearch(interaction: discord.Interaction, query: str):
         await interaction.followup.send(f"Found {num_results} results. Showing the top 10 results.")
 
         file_path = 'wifi_search_results.txt'
-        with open(file_path, 'w') as file:
+        with open(file_path, 'w', encoding='utf-8') as file:
             for network_details in network_details_list:
                 for key, value in network_details.items():
                     file.write(f"{key}: {value}\n")
-                file.write("\n")  
-
+                file.write("\n") 
+                
         # Send the top 10 results as embeds
         for network_details in network_details_list[:10]:
             network_id = network_details.get('netid', 'N/A') 
