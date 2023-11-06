@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import inflect
+import time
 
 # Constants for embed colors with 1990s BBS aesthetic FTW I'm an old ass RocketGod
 EMBED_COLOR_USER = 0xFF00FF  # Magenta
@@ -57,23 +58,45 @@ class WigleBot(discord.Client):
                 await self.session.close()
 
     async def fetch_wigle_user_stats(self, username: str):
-        req = f"https://api.wigle.net/api/v2/stats/user?user={username}"
+        timestamp = int(time.time())
+        req = f"https://api.wigle.net/api/v2/stats/user?user={username}&nocache={timestamp}"
+        headers = {
+            'Authorization': f'Basic {config["wigle_api_key"]}',
+            'Cache-Control': 'no-cache',  
+        }
         try:
-            async with self.session.get(req, headers={'Authorization': f'Basic {config["wigle_api_key"]}'}) as response:
+            async with self.session.get(req, headers=headers) as response:
+                if response.status == 404:
+                    logging.info(f"WiGLE user {username} not found.")
+                    return {'success': False, 'message': 'User not found.'}
+                elif response.status != 200:
+                    logging.error(f"Error fetching WiGLE user stats for {username}: {response.status}")
+                    return {'success': False, 'message': f"HTTP error {response.status}"}
                 logging.info(f"Fetched WiGLE user stats for {username}")
                 return await response.json()
         except Exception as e:
             logging.error(f"Failed to fetch WiGLE user stats for {username}: {e}")
-            raise
+            return {'success': False, 'message': str(e)}
 
     async def fetch_wigle_group_rank(self):
-        req = "https://api.wigle.net/api/v2/stats/group"
+        timestamp = int(time.time())
+        req = f"https://api.wigle.net/api/v2/stats/group?nocache={timestamp}"
+        headers = {
+            'Authorization': f'Basic {config["wigle_api_key"]}',
+            'Cache-Control': 'no-cache',  
+        }
         try:
-            async with self.session.get(req, headers={'Authorization': f'Basic {config["wigle_api_key"]}'}) as response:
+            async with self.session.get(req, headers=headers) as response:
+                if response.status == 404:
+                    logging.info("WiGLE group not found.")
+                    return {'success': False, 'message': 'Group not found.'}
+                elif response.status != 200:
+                    logging.error(f"Error fetching WiGLE group ranks: {response.status}")
+                    return {'success': False, 'message': f"HTTP error {response.status}"}
                 return await response.json()
         except Exception as e:
             logging.error(f"Failed to fetch WiGLE group ranks: {e}")
-            raise
+            return {'success': False, 'message': str(e)}
 
 client = WigleBot()
 
