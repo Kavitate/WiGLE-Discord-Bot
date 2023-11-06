@@ -7,8 +7,8 @@
 This Discord bot is used to pull a user's stats from [WiGLE](https://wigle.net/) using WiGLE's API as shown below.
 
 <p float="left">
-  <img align="center" src="https://i.imgur.com/yzcHuNu.png" width="425" height="450"/>
-  <img align="right" src="https://i.imgur.com/PtFZrBb.png" width="425" height="450"/>
+  <img align="center" src="https://i.imgur.com/yzcHuNu.png" width="400" height="450"/>
+  <img align="right" src="https://i.imgur.com/PtFZrBb.png" width="400" height="450"/>
 </p>
 
 ## Variables
