@@ -18,19 +18,19 @@ Prior to using the bot the following lines of code must be changed in the `confi
 - Replace `YOUR-ENCODED-FOR-USE-KEY-HERE` with your WiGLE API Key.
   - Your API key can be found [here](https://api.wigle.net/), select your account page in the lower right, then select "Show My Token".
   - The token you are looking for will be listed as the "Encoded for use".
-- Replace `YOUR-GROUP-ID-HERE` with your group ID.
-  - Your group ID can be found by logging into wigle.net, going [here](https://api.wigle.net/api/v2/stats/group), finding your group name within the list, and copying the `groupId`.
-  - :warning: This function is currently not implemented within the new version of the bot. It is a work in progress.
 
 You can change the amount of data shown on the group rank and user rank commands by changing the following variables:
-- For `/grouprank` change line 169 from `40` to however many groups you want the bot to show.
+- For `/grouprank` change line 231 from `40` to however many groups you want the bot to show.
+- For `/userrank` change line 304 from `40` to however many users you want the bot to show.
 
 :warning: Note that neither of these commands are designed to be split for Discord. If you enter a number that would produce an output over Discord's 2,000 character limit, it will not go through.
 
 ## Commands
 Once the above lines have been updated run the bot using the following commands:
 - `/user` followed by a username to get user stats. For example, `/user kavitate`.
+- `/userrank` followed by a group name to get user rankings for that group. For example, `/userrank #wardriving`.
 - `/grouprank` to show group rankings.
+- `/help` to show a list of available bot commands.
 
 # Credits
 The idea for this bot was inspired by the [WiGLE Bot Repo](https://github.com/INIT6Source/WiGLE-bot) made by [INIT6Source](https://github.com/INIT6Source).
