@@ -6,22 +6,22 @@ import logging
 import inflect
 import time
 
-EMBED_COLOR_USER = 0xFF00FF
-EMBED_COLOR_GROUP_RANK = 0x0000FF
+EMBED_COLOR_USER = 0xFF00FF  # Magenta
+EMBED_COLOR_GROUP_RANK = 0x0000FF  # Bright Red
 
 logging.basicConfig(level=logging.DEBUG)
 
 def load_config():
-    try:
+  try:
     with open('config.json', 'r') as config_file:
-        return json.load(config_file)
-    except FileNotFoundError:
+      return json.load(config_file)
+  except FileNotFoundError:
     logging.critical('The config.json file was not found.')
     raise
-    except json.JSONDecodeError:
+  except json.JSONDecodeError:
     logging.critical('config.json is not a valid JSON file.')
     raise
-    except Exception as e:
+  except Exception as e:
     logging.critical(f'An unexpected error occurred while loading config.json: {e}')
     raise
 
@@ -41,16 +41,16 @@ class WigleBot(discord.Client):
     self.session = None
     self.wigle_api_key = wigle_api_key
 
-    async def on_ready(self):
+  async def on_ready(self):
     logging.info(f"Bot {self.user.name} is ready!")
     self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60))
     await self.tree.sync()
 
-    async def close(self):
+  async def close(self):
     try:
-        await super().close()
+      await super().close()
     finally:
-        if self.session:
+      if self.session:
         await self.session.close()
 
     async def fetch_wigle_user_stats(self, username: str):
@@ -89,65 +89,65 @@ class WigleBot(discord.Client):
             logging.error(f"Failed to fetch WiGLE user stats for {username}: {e}")
             return {'success': False, 'message': str(e)}
             
-    async def fetch_wigle_group_rank(self):
+  async def fetch_wigle_group_rank(self):
     timestamp = int(time.time())
     req = f"https://api.wigle.net/api/v2/stats/group?nocache={timestamp}"
     headers = {'Authorization': f'Basic {config["wigle_api_key"]}','Cache-Control': 'no-cache',}
     try:
-        async with self.session.get(req, headers=headers) as response:
+      async with self.session.get(req, headers=headers) as response:
         if response.status != 200:
-            logging.error(f"Error fetching WiGLE group ranks: {response.status}")
-            return {'success': False, 'message': f"HTTP error {response.status}"}
+          logging.error(f"Error fetching WiGLE group ranks: {response.status}")
+          return {'success': False, 'message': f"HTTP error {response.status}"}
 
         data = await response.json()
         if data.get('success') and 'groups' in data:
-            return data
+          return data
         else:
-            return {'success': False, 'message': 'No group data available.'}
+          return {'success': False, 'message': 'No group data available.'}
     except Exception as e:
-        logging.error(f"Failed to fetch WiGLE group ranks: {e}")
-        return {'success': False, 'message': str(e)}
+      logging.error(f"Failed to fetch WiGLE group ranks: {e}")
+      return {'success': False, 'message': str(e)}
 
-    async def fetch_wigle_id(self, group_name: str):
+  async def fetch_wigle_id(self, group_name: str):
     timestamp = int(time.time())
     req = f"https://api.wigle.net/api/v2/stats/group?nocache={timestamp}"
     headers = {'Authorization': f'Basic {self.wigle_api_key}','Cache-Control': 'no-cache',}
     try:
-        async with self.session.get(req, headers=headers) as response:
+      async with self.session.get(req, headers=headers) as response:
         if response.status != 200:
-            logging.error(f"Error fetching WiGLE group ID for '{group_name}': {response.status}")
-            return {'success': False, 'message': f"HTTP error {response.status}"}
+          logging.error(f"Error fetching WiGLE group ID for '{group_name}': {response.status}")
+          return {'success': False, 'message': f"HTTP error {response.status}"}
 
         data = await response.json()
         if 'success' in data:
-            groups = data.get('groups', [])
-            for group in groups:
+          groups = data.get('groups', [])
+          for group in groups:
             if group['groupName'] == group_name:
-                group_id = group['groupId']
-                url = f"https://api.wigle.net/api/v2/group/groupMembers?groupid={group_id}"
-                return {'success': True, 'groupId': group_id, 'url': url}
+              group_id = group['groupId']
+              url = f"https://api.wigle.net/api/v2/group/groupMembers?groupid={group_id}"
+              return {'success': True, 'groupId': group_id, 'url': url}
 
-            # No group with the specified name found
-            return {'success': False,'message': f"No group named '{group_name}' found"}
+          # No group with the specified name found
+          return {'success': False,'message': f"No group named '{group_name}' found"}
         else:
-            logging.warning(f"WiGLE group ID fetch error for '{group_name}': {data['message']}")
-            return {'success': False, 'message': data['message']}
+          logging.warning(f"WiGLE group ID fetch error for '{group_name}': {data['message']}")
+          return {'success': False, 'message': data['message']}
     except Exception as e:
-        logging.error(f"Failed to fetch WiGLE group ID for '{group_name}': {e}")
-        return {'success': False, 'message': str(e)}
+      logging.error(f"Failed to fetch WiGLE group ID for '{group_name}': {e}")
+      return {'success': False, 'message': str(e)}
 
-    async def fetch_user_rank(self, url: str):
+  async def fetch_user_rank(self, url: str):
     try:
-        async with self.session.get(url) as response:
+      async with self.session.get(url) as response:
         if response.status != 200:
-            logging.error(f"Error fetching user rank from URL: {url}, HTTP error {response.status}")
-            return None
+          logging.error(f"Error fetching user rank from URL: {url}, HTTP error {response.status}")
+          return None
 
         data = await response.json()
         return data
     except Exception as e:
-        logging.error(f"Failed to fetch user rank from URL: {url}, {e}")
-        return None
+      logging.error(f"Failed to fetch user rank from URL: {url}, {e}")
+      return None
 
 client = WigleBot(wigle_api_key=wigle_api_key)
 
