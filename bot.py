@@ -282,7 +282,7 @@ async def userrank(interaction: discord.Interaction, group: str):
             rank = p.ordinal(i)
             rankings += f"**{rank}:** {username} **Total:** {discovered}\n"
 
-          embed = discord.Embed(title=f"Data for '{group}'", color=0x1E90FF, description=rankings)
+          embed = discord.Embed(title=f"User Rankings for '{group}'", color=0x1E90FF, description=rankings)
           await interaction.followup.send(embed=embed)
         else:
           await interaction.followup.send("Failed to fetch group data from the URL.")
