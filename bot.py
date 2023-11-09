@@ -63,7 +63,7 @@ class WigleBot(discord.Client):
         timestamp = int(time.time())
         req = f"https://api.wigle.net/api/v2/stats/user?user={username}&nocache={timestamp}"
         headers = {
-            'Authorization': f'Basic {config["wigle_api_key"]}',
+            'Authorization': f'Basic {self.wigle_api_key}',
             'Cache-Control': 'no-cache',  
         }
         try:
@@ -76,11 +76,15 @@ class WigleBot(discord.Client):
                     return {'success': False, 'message': f"HTTP error {response.status}"}
                 
                 data = await response.json()
-                if data.get('success') and 'user' in data and 'rank' in data:
-                    logging.info(f"Fetched WiGLE user stats for {username}")
-                    return data
+                if data.get('success') and 'statistics' in data and 'userName' in data['statistics']:
+                    # Compare the requested username with the username in the response (case insensitive)
+                    if data['statistics']['userName'].lower() == username.lower():
+                        logging.info(f"Fetched WiGLE user stats for {username}")
+                        return data
+                    else:
+                        return {'success': False, 'message': 'User not found.'}
                 else:
-                    return {'success': False, 'message': 'Invalid data received.'}
+                    return {'success': False, 'message': 'Invalid data received or user not found.'}
         except Exception as e:
             logging.error(f"Failed to fetch WiGLE user stats for {username}: {e}")
             return {'success': False, 'message': str(e)}
@@ -105,28 +109,6 @@ class WigleBot(discord.Client):
                     return {'success': False, 'message': 'No group data available.'}
         except Exception as e:
             logging.error(f"Failed to fetch WiGLE group ranks: {e}")
-            return {'success': False, 'message': str(e)}
-
-    async def fetch_wifi_search(self, query: str):
-        formatted_query = urllib.parse.urlencode({'ssid': query})
-        url = f"https://api.wigle.net/api/v2/network/search?{formatted_query}"
-        headers = {
-            'Authorization': f'Basic {self.wigle_api_key}',
-            'Cache-Control': 'no-cache',
-        }
-        try:
-            async with self.session.get(url, headers=headers) as response:
-                if response.status != 200:
-                    logging.error(f"Error searching WiGLE network: {response.status}")
-                    return {'success': False, 'message': f"HTTP error {response.status}"}
-                
-                data = await response.json()
-                if data.get('success'):
-                    return data
-                else:
-                    return {'success': False, 'message': 'Invalid data received.'}
-        except Exception as e:
-            logging.error(f"Failed to search WiGLE network: {e}")
             return {'success': False, 'message': str(e)}
 
 client = WigleBot(wigle_api_key=wigle_api_key)  
@@ -188,7 +170,7 @@ async def user(interaction: discord.Interaction, username: str):
 
             # Add image if available
             if image_url:
-                embed.set_image(url=f"https://wigle.net{image_url}")
+                embed.set_image(url=f"https://api.wigle.net{image_url}")
 
             # Send the embed as a follow-up to the interaction
             await interaction.followup.send(embed=embed)
@@ -231,73 +213,6 @@ async def grouprank(interaction: discord.Interaction):
     else:
         await interaction.followup.send("Failed to retrieve group rankings. Please try again later.")
 
-@client.tree.command(name="wifisearch", description="Search the WiGLE Wifi database.")
-async def wifisearch(interaction: discord.Interaction, query: str):
-    await interaction.response.defer(ephemeral=False)
-
-    logging.info(f"Searching WiGLE database with query: {query}")
-    response = await client.fetch_wifi_search(query)
-
-    if 'success' in response and response['success']:
-        network_details_list = response.get('results', [])
-        num_results = len(network_details_list)
-
-        logging.info(f"Found {num_results} results for query '{query}'. Showing the top 10 results.")
-        await interaction.followup.send(f"Found {num_results} results. Showing the top 10 results.")
-
-        file_path = 'wifi_search_results.txt'
-        with open(file_path, 'w', encoding='utf-8') as file:
-            for network_details in network_details_list:
-                for key, value in network_details.items():
-                    file.write(f"{key}: {value}\n")
-                file.write("\n") 
-                
-        # Send the top 10 results as embeds
-        for network_details in network_details_list[:10]:
-            network_id = network_details.get('netid', 'N/A') 
-            embed = discord.Embed(title=f"WiGLE WiFi Network Details for {network_id}", color=0x1E90FF)
-
-            # Format dates for better readability
-            first_seen = network_details.get('firsttime', 'Not available')
-            last_seen = network_details.get('lasttime', 'Not available')
-            last_update = network_details.get('lastupdt', 'Not available')
-
-            # Add fields from WiFiNetworkWithLocation
-            embed.add_field(name="SSID", value=network_details['ssid'], inline=True)
-            embed.add_field(name="QoS", value=network_details['qos'], inline=True)
-            embed.add_field(name="TransID", value=network_details['transid'], inline=True)
-            embed.add_field(name="First Seen", value=first_seen, inline=True)
-            embed.add_field(name="Last Seen", value=last_seen, inline=True)
-            embed.add_field(name="Last Update", value=last_update, inline=True)
-            embed.add_field(name="Network ID", value=network_details['netid'], inline=True)
-            embed.add_field(name="Name", value=network_details['name'], inline=True)
-            embed.add_field(name="Type", value=network_details['type'], inline=True)
-            embed.add_field(name="Comment", value=network_details['comment'], inline=True)
-            embed.add_field(name="WEP", value=network_details['wep'], inline=True)
-            embed.add_field(name="Beacon Interval", value=network_details['bcninterval'], inline=True)
-            embed.add_field(name="Freenet", value=network_details['freenet'], inline=True)
-            embed.add_field(name="DHCP", value=network_details['dhcp'], inline=True)
-            embed.add_field(name="Paynet", value=network_details['paynet'], inline=True)
-            embed.add_field(name="User Found", value=network_details['userfound'], inline=True)
-            embed.add_field(name="Channel", value=network_details['channel'], inline=True)
-            embed.add_field(name="Encryption", value=network_details['encryption'], inline=True)
-            embed.add_field(name="Country", value=network_details['country'], inline=True)
-            embed.add_field(name="Region", value=network_details['region'], inline=True)
-            embed.add_field(name="Road", value=network_details['road'], inline=True)
-            embed.add_field(name="City", value=network_details['city'], inline=True)
-            embed.add_field(name="House Number", value=network_details['housenumber'], inline=True)
-            embed.add_field(name="Postal Code", value=network_details['postalcode'], inline=True)
-
-            await interaction.followup.send(embed=embed)
-
-        with open(file_path, 'rb') as file:
-            await interaction.followup.send(file=discord.File(file, 'wifi_search_results.txt'))
-
-    else:
-        error_message = response.get('message', 'Failed to fetch WiFi network details.')
-        logging.warning(f"WiGLE WiFi network detail fetch error for query '{query}': {error_message}")
-        await interaction.followup.send(error_message)
-
 @client.tree.command(name="help", description="Displays help information for WigleBot commands.")
 async def help_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=False)
@@ -307,7 +222,6 @@ async def help_command(interaction: discord.Interaction):
         "**Commands List**\n"
         "`/user <username>` - Get stats for a WiGLE user.\n"
         "`/grouprank` - Get WiGLE group rankings.\n"
-        "`/wifisearch` - Search the WiGLE wifi database. Try an SSID!\n"        
         "`/help` - Shows this help message.\n\n"
     )
 
