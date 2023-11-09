@@ -76,9 +76,15 @@ class WigleBot(discord.Client):
                 
                 data = await response.json()
                 if data.get('success') and 'statistics' in data and 'userName' in data['statistics']:
-                    # Compare the requested username with the username in the response (case insensitive) to check if username is valid or not
                     if data['statistics']['userName'].lower() == username.lower():
                         logging.info(f"Fetched WiGLE user stats for {username}")
+
+                        # Change here: append a timestamp to the image URL to avoid caching
+                        image_url = data.get('imageBadgeUrl', '')
+                        if image_url:
+                            image_url += f"?nocache={timestamp}"
+                            data['imageBadgeUrl'] = image_url  # Update the URL in the data dictionary
+
                         return data
                     else:
                         return {'success': False, 'message': 'User not found.'}
