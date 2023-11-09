@@ -1,6 +1,6 @@
 # The idea for this bot was inspired by the WiGLE Bot Repo made by INIT6Source.
 # More stats added by Kavitate
-# Further fuckery, search function, and slash command modernization by RocketGod
+# Further fuckery by RocketGod
 
 import discord
 import aiohttp
