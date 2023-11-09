@@ -53,29 +53,42 @@ class WigleBot(discord.Client):
       if self.session:
         await self.session.close()
 
-  async def fetch_wigle_user_stats(self, username: str):
-    timestamp = int(time.time())
-    req = f"https://api.wigle.net/api/v2/stats/user?user={username}&nocache={timestamp}"
-    headers = {'Authorization': f'Basic {config["wigle_api_key"]}','Cache-Control': 'no-cache',}
-    try:
-      async with self.session.get(req, headers=headers) as response:
-        if response.status == 404:
-          logging.info(f"WiGLE user {username} not found.")
-          return {'success': False, 'message': 'User not found.'}
-        elif response.status != 200:
-          logging.error(f"Error fetching WiGLE user stats for {username}: {response.status}")
-          return {'success': False, 'message': f"HTTP error {response.status}"}
+    async def fetch_wigle_user_stats(self, username: str):
+        timestamp = int(time.time())
+        req = f"https://api.wigle.net/api/v2/stats/user?user={username}&nocache={timestamp}"
+        headers = {
+            'Authorization': f'Basic {self.wigle_api_key}',
+            'Cache-Control': 'no-cache',  
+        }
+        try:
+            async with self.session.get(req, headers=headers) as response:
+                if response.status == 404:
+                    logging.info(f"WiGLE user {username} not found.")
+                    return {'success': False, 'message': 'User not found.'}
+                elif response.status != 200:
+                    logging.error(f"Error fetching WiGLE user stats for {username}: {response.status}")
+                    return {'success': False, 'message': f"HTTP error {response.status}"}
+                
+                data = await response.json()
+                if data.get('success') and 'statistics' in data and 'userName' in data['statistics']:
+                    if data['statistics']['userName'].lower() == username.lower():
+                        logging.info(f"Fetched WiGLE user stats for {username}")
 
-        data = await response.json()
-        if data.get('success') and 'user' in data and 'rank' in data:
-          logging.info(f"Fetched WiGLE user stats for {username}")
-          return data
-        else:
-          return {'success': False, 'message': 'Invalid data received.'}
-    except Exception as e:
-      logging.error(f"Failed to fetch WiGLE user stats for {username}: {e}")
-      return {'success': False, 'message': str(e)}
+                        # Change here: append a timestamp to the image URL to avoid caching
+                        image_url = data.get('imageBadgeUrl', '')
+                        if image_url:
+                            image_url += f"?nocache={timestamp}"
+                            data['imageBadgeUrl'] = image_url  # Update the URL in the data dictionary
 
+                        return data
+                    else:
+                        return {'success': False, 'message': 'User not found.'}
+                else:
+                    return {'success': False, 'message': 'Invalid data received or user not found.'}
+        except Exception as e:
+            logging.error(f"Failed to fetch WiGLE user stats for {username}: {e}")
+            return {'success': False, 'message': str(e)}
+            
   async def fetch_wigle_group_rank(self):
     timestamp = int(time.time())
     req = f"https://api.wigle.net/api/v2/stats/group?nocache={timestamp}"
@@ -293,7 +306,6 @@ async def help_command(interaction: discord.Interaction):
                "`/user <username>` - Get stats for a WiGLE user.\n"
                "`/grouprank` - Get WiGLE group rankings.\n"
                "`/userrank` - Get WiGLE user rankings for a group.\n"
-               "`/wifisearch` - Search the WiGLE wifi database. Try an SSID!\n"
                "`/help` - Shows this help message.\n\n")
 
   color = 0x00FF00  # Bright Green
