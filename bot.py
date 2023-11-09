@@ -240,44 +240,6 @@ async def grouprank(interaction: discord.Interaction):
     await interaction.followup.send(
         "Failed to retrieve group rankings. Please try again later.")
 
-@client.tree.command(name="id", description="Get WiGLE group ID.")
-async def id(interaction: discord.Interaction, group_name: str):
-  logging.info(f"Command 'id' invoked for group name: {group_name}")
-  await interaction.response.defer(ephemeral=False)
-
-  try:
-    # Fetch the user stats from the WiGLE API
-    response = await client.fetch_wigle_id(group_name)
-
-    if 'success' in response and response['success'] is True:
-      groupId = response.get('groupId', None)
-
-      if groupId is not None:
-        # Create an embed object for a nicely formatted Discord message
-        embed = discord.Embed(title=f"WiGLE group ID for '{group_name}'", color=0x1E90FF)
-
-        # Add fields to embed
-        embed.add_field(name="Group Name", value=group_name, inline=True)
-        embed.add_field(name="Group ID", value=groupId, inline=True)
-
-        # Send the embed as a follow-up to the interaction
-        await interaction.followup.send(embed=embed)
-      else:
-        logging.warning(f"Missing 'groupId' key in WiGLE API response for '{group_name}'")
-        await interaction.followup.send("Invalid API response: missing 'groupId' key")
-    else:
-      error_message = response.get('message', 'Failed to fetch group ID.')
-      logging.warning(f"WiGLE group ID fetch error for {group_name}: {error_message}")
-      await interaction.followup.send(error_message)
-
-  except KeyError as e:
-    logging.error(f"A required key is missing in the response: {e}")
-    await interaction.followup.send(f"Error: A required piece of information is missing: {e}")
-
-  except Exception as e:
-    logging.error(f"An error occurred: {e}")
-    await interaction.followup.send(f"An error occurred: {e}")
-
 @client.tree.command(name="userrank", description="Get user ranks for group.")
 async def userrank(interaction: discord.Interaction, group: str):
   logging.info(f"Command 'userrank' invoked for group name: {group}")
