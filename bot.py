@@ -56,10 +56,7 @@ class WigleBot(discord.Client):
     async def fetch_wigle_user_stats(self, username: str):
         timestamp = int(time.time())
         req = f"https://api.wigle.net/api/v2/stats/user?user={username}&nocache={timestamp}"
-        headers = {
-            'Authorization': f'Basic {self.wigle_api_key}',
-            'Cache-Control': 'no-cache',  
-        }
+        headers = {'Authorization': f'Basic {self.wigle_api_key}','Cache-Control': 'no-cache',}
         try:
             async with self.session.get(req, headers=headers) as response:
                 if response.status == 404:
