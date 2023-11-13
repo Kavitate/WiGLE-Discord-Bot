@@ -240,9 +240,9 @@ async def grouprank(interaction: discord.Interaction):
     p = inflect.engine()
     for i, group in enumerate(groups[:40], 1):  # zzTop 40
       groupName = group['groupName']
-      total = group['total']
+      discovered = group['discovered']
       rank = p.ordinal(i)
-      rankings += f"**{rank}:** {groupName} | **Total:** {total}\n"
+      rankings += f"**{rank}:** {groupName} | **Total:** {discovered}\n"
 
       embed = discord.Embed(title="WiGLE Group Rankings",description=rankings,color=EMBED_COLOR_GROUP_RANK)
     await interaction.followup.send(embed=embed)
