@@ -198,8 +198,8 @@ async def user(interaction: discord.Interaction, username: str):
             # Format 'last' and 'first' event dates (assuming they are in UTC but maybe we should just remove the time?)
             last_event_datetime = datetime.strptime(last, "%Y%m%d-%H%M%S")
             first_event_datetime = datetime.strptime(first, "%Y%m%d-%H%M%S")
-            last_event_formatted = last_event_datetime.strftime("%B %d, %Y at %H:%M:%S UTC")
-            first_event_formatted = first_event_datetime.strftime("%B %d, %Y at %H:%M:%S UTC")
+            last_event_formatted = last_event_datetime.strftime("%B %d, %Y")
+            first_event_formatted = first_event_datetime.strftime("%B %d, %Y")
 
             # Create an embed object for a nicely formatted Discord message
             embed = discord.Embed(title=f"WiGLE User Stats for '{username}'", color=0x1E90FF)
