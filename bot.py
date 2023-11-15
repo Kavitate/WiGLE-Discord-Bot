@@ -293,7 +293,8 @@ async def userrank(interaction: discord.Interaction, group: str):
                     rankings = ""
 
                     p = inflect.engine()
-                    for i, user in enumerate(users[:40], 1):
+                    filtered_users = [user for user in users if "L" not in user["status"]]
+                    for i, user in enumerate(filtered_users[:40], 1):
                         username = user["username"]
                         discovered = user["discovered"]
                         rank = p.ordinal(i)
