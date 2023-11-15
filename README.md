@@ -25,8 +25,8 @@ Prior to using the bot the following lines of code must be changed in the `confi
   - The token you are looking for will be listed as the "Encoded for use".
 
 You can change the amount of data shown on the group rank and user rank commands by changing the following variables:
-- For `/grouprank` change line 241 from `40` to however many groups you want the bot to show.
-- For `/userrank` change line 276 from `40` to however many users you want the bot to show.
+- For `/grouprank` change line 261 from `40` to however many groups you want the bot to show.
+- For `/userrank` change line 297 from `40` to however many users you want the bot to show.
 
 :warning: Note that neither of these commands are designed to be split for Discord. If you enter a number that would produce an output over Discord's 2,000 character limit, it will not go through.
 
