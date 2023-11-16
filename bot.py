@@ -203,7 +203,7 @@ class UserRankView(discord.ui.View):
           self.update_button()
           await interaction.response.edit_message(embed=self.embed, view=self)
 
-class PaginationView(View):
+class GroupView(View):
   def __init__(self, groups):
       super().__init__()
       self.groups = groups
@@ -337,7 +337,7 @@ async def grouprank(interaction: discord.Interaction):
 
     if "success" in response and response["success"] is True:
         groups = response["groups"]
-        view = PaginationView(groups)
+        view = GroupView(groups)
         await interaction.followup.send(embed=view.get_embed(), view=view)
     else:
         await interaction.followup.send("Failed to fetch group ranks: " + response.get("message", "Unknown error"))
