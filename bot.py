@@ -183,7 +183,7 @@ class UserRankView(discord.ui.View):
 
       self.embed = discord.Embed(title=f"User Rankings for '{self.group}'", color=0x1E90FF, description=rankings)
 
-  @discord.ui.button(label="Previous", style=discord.ButtonStyle.blurple)
+  @discord.ui.button(label="< Back", style=discord.ButtonStyle.blurple)
   async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
       if self.page > 0:
           self.page -= 1
@@ -196,7 +196,7 @@ class UserRankView(discord.ui.View):
       self.update_button()
       await interaction.response.edit_message(embed=self.embed, view=self)
 
-  @discord.ui.button(label="Next", style=discord.ButtonStyle.blurple)
+  @discord.ui.button(label="Next >", style=discord.ButtonStyle.blurple)
   async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
       if self.page < len(self.users) // 10:
           self.page += 1
@@ -215,7 +215,7 @@ class PaginationView(View):
       self.previous.disabled = self.page == 0
       self.next.disabled = self.page == len(self.groups) // 10 - 1
 
-  @discord.ui.button(label="< Previous", style=discord.ButtonStyle.blurple)
+  @discord.ui.button(label="< Back", style=discord.ButtonStyle.blurple)
   async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
       self.page -= 1
       self.update_buttons()
@@ -281,7 +281,7 @@ async def user(interaction: discord.Interaction, username: str):
             first = statistics["first"]
             image_url = response.get("imageBadgeUrl", "")
 
-            # Format 'last' and 'first' event dates (assuming they are in UTC but maybe we should just remove the time?)
+            # Format 'last' and 'first' event dates
             last_event_datetime = datetime.strptime(last, "%Y%m%d-%H%M%S")
             first_event_datetime = datetime.strptime(first, "%Y%m%d-%H%M%S")
             last_event_formatted = last_event_datetime.strftime("%B %d, %Y")
