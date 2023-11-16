@@ -281,9 +281,13 @@ async def user(interaction: discord.Interaction, username: str):
             first = statistics["first"]
             image_url = response.get("imageBadgeUrl", "")
 
-            # Format 'last' and 'first' event dates
-            last_event_datetime = datetime.strptime(last, "%Y%m%d-%H%M%S")
-            first_event_datetime = datetime.strptime(first, "%Y%m%d-%H%M%S")
+            # Extract and format 'last' and 'first' event dates (ignoring time)
+            last_event_date_str, _ = last.split("-")
+            first_event_date_str, _ = first.split("-")
+
+            last_event_datetime = datetime.strptime(last_event_date_str, "%Y%m%d")
+            first_event_datetime = datetime.strptime(first_event_date_str, "%Y%m%d")
+          
             last_event_formatted = last_event_datetime.strftime("%B %d, %Y")
             first_event_formatted = first_event_datetime.strftime("%B %d, %Y")
 
