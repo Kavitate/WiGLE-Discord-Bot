@@ -6,12 +6,12 @@ import logging
 import inflect
 import time
 from datetime import datetime
+from discord.ui import View
 
 EMBED_COLOR_USER = 0xFF00FF  # Magenta
 EMBED_COLOR_GROUP_RANK = 0x0000FF  # Bright Red
 
 logging.basicConfig(level=logging.DEBUG)
-
 
 def load_config():
     try:
@@ -27,12 +27,10 @@ def load_config():
         logging.critical(f"An unexpected error occurred while loading config.json: {e}")
         raise
 
-
 config = load_config()
 
 discord_bot_token = config["discord_bot_token"]
 wigle_api_key = config["wigle_api_key"]
-
 
 class WigleBot(discord.Client):
     def __init__(self, wigle_api_key) -> None:
@@ -158,9 +156,97 @@ class WigleBot(discord.Client):
             logging.error(f"Failed to fetch user rank from URL: {url}, {e}")
             return None
 
+class UserRankView(discord.ui.View):
+  def __init__(self, users, group):
+      super().__init__()
+      self.users = users
+      self.group = group
+      self.page = 0
+      self.update_button()
+
+  def update_button(self):
+      self.previous_page.disabled = self.page == 0
+      self.next_page.disabled = self.page == len(self.users) // 10 - 1
+
+      p = inflect.engine()
+      filtered_users = [user for user in self.users if "L" not in user["status"]]
+      start = self.page * 10
+      end = start + 10
+      users_on_page = filtered_users[start:end]
+
+      rankings = ""
+      for i, user in enumerate(users_on_page, start+1):
+          username = user["username"]
+          discovered = user["discovered"]
+          rank = p.ordinal(i)
+          rankings += f"**{rank}:** {username} | **Total:** {discovered}\n"
+
+      self.embed = discord.Embed(title=f"User Rankings for '{self.group}'", color=0x1E90FF, description=rankings)
+
+  @discord.ui.button(label="Previous", style=discord.ButtonStyle.blurple)
+  async def previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+      if self.page > 0:
+          self.page -= 1
+          self.update_button()
+          await interaction.response.edit_message(embed=self.embed, view=self)
+  
+  @discord.ui.button(label="Reset", style=discord.ButtonStyle.red)
+  async def reset_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page = 0
+      self.update_button()
+      await interaction.response.edit_message(embed=self.embed, view=self)
+
+  @discord.ui.button(label="Next", style=discord.ButtonStyle.blurple)
+  async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+      if self.page < len(self.users) // 10:
+          self.page += 1
+          self.update_button()
+          await interaction.response.edit_message(embed=self.embed, view=self)
+
+class PaginationView(View):
+  def __init__(self, groups):
+      super().__init__()
+      self.groups = groups
+      self.page = 0
+      self.p = inflect.engine()  # Create an instance of the inflect library
+      self.update_buttons()
+
+  def update_buttons(self):
+      self.previous.disabled = self.page == 0
+      self.next.disabled = self.page == len(self.groups) // 10 - 1
+
+  @discord.ui.button(label="< Previous", style=discord.ButtonStyle.blurple)
+  async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page -= 1
+      self.update_buttons()
+      await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+  @discord.ui.button(label="Reset", style=discord.ButtonStyle.danger)
+  async def reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page = 0
+      self.update_buttons()
+      await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+  @discord.ui.button(label="Next >", style=discord.ButtonStyle.blurple)
+  async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page += 1
+      self.update_buttons()
+      await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+  def get_embed(self):
+    start = self.page * 10
+    end = start + 10
+    group_slice = self.groups[start:end]
+    rankings = ""
+    for i, group in enumerate(group_slice, start=start+1):
+        groupName = group["groupName"]
+        discovered = group["discovered"]
+        rank = self.p.ordinal(i)
+        rankings += f"**{rank}:** {groupName} | **Total:** {discovered}\n"
+    embed = discord.Embed(title="WiGLE Group Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
+    return embed
 
 client = WigleBot(wigle_api_key=wigle_api_key)
-
 
 @client.tree.command(name="user", description="Get stats for a WiGLE user.")
 async def user(interaction: discord.Interaction, username: str):
@@ -242,7 +328,6 @@ async def user(interaction: discord.Interaction, username: str):
         logging.error(f"An error occurred: {e}")
         await interaction.followup.send(f"An error occurred: {e}")
 
-
 @client.tree.command(name="grouprank", description="Get WiGLE group rankings.")
 async def grouprank(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=False)
@@ -252,23 +337,10 @@ async def grouprank(interaction: discord.Interaction):
 
     if "success" in response and response["success"] is True:
         groups = response["groups"]
-
-        # Initialize an empty string to store the rankings
-        rankings = ""
-
-        # Use inflect to convert numbers to ordinals (1st, 2nd, 3rd, etc.)
-        p = inflect.engine()
-        for i, group in enumerate(groups[:40], 1):  # zzTop 40
-            groupName = group["groupName"]
-            discovered = group["discovered"]
-            rank = p.ordinal(i)
-            rankings += f"**{rank}:** {groupName} | **Total:** {discovered}\n"
-
-            embed = discord.Embed(title="WiGLE Group Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
-        await interaction.followup.send(embed=embed)
+        view = PaginationView(groups)
+        await interaction.followup.send(embed=view.get_embed(), view=view)
     else:
-        await interaction.followup.send("Failed to retrieve group rankings. Please try again later.")
-
+        await interaction.followup.send("Failed to fetch group ranks: " + response.get("message", "Unknown error"))
 
 @client.tree.command(name="userrank", description="Get user ranks for group.")
 async def userrank(interaction: discord.Interaction, group: str):
@@ -289,19 +361,8 @@ async def userrank(interaction: discord.Interaction, group: str):
                 if group_data:
                     users = group_data.get("users", [])
 
-                    # Initialize an empty string to store the rankings
-                    rankings = ""
-
-                    p = inflect.engine()
-                    filtered_users = [user for user in users if "L" not in user["status"]]
-                    for i, user in enumerate(filtered_users[:40], 1):
-                        username = user["username"]
-                        discovered = user["discovered"]
-                        rank = p.ordinal(i)
-                        rankings += f"**{rank}:** {username} **Total:** {discovered}\n"
-
-                    embed = discord.Embed(title=f"User Rankings for '{group}'", color=0x1E90FF, description=rankings)
-                    await interaction.followup.send(embed=embed)
+                    view = UserRankView(users, group)
+                    await interaction.followup.send(embed=view.embed, view=view)
                 else:
                     await interaction.followup.send("Failed to fetch group data from the URL.")
             else:
@@ -314,7 +375,6 @@ async def userrank(interaction: discord.Interaction, group: str):
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         await interaction.followup.send(f"An error occurred: {e}")
-
 
 @client.tree.command(name="help", description="Displays help information for WiGLE Bot commands.")
 async def help_command(interaction: discord.Interaction):
@@ -336,22 +396,20 @@ async def help_command(interaction: discord.Interaction):
 
     ascii_art = (
         "```"
-        "                    (         \n"
-        " (  (        (      )\ )      \n"
-        " )\))(   '(  )\ )  (()/( (    \n"
-        "((_)()\ ) )\(()/(   /(_)))\   \n"
-        "_(())\_)(|(_)/(_))_(_)) ((_)  \n"
-        "\ \((_)/ /(_|_)) __| |  | __| \n"
-        " \ \/\/ / | | | (_ | |__| _|  \n"
-        "  \_/\_/  |_|  \___|____|___| \n"
-        "                               \n"
-        "```"
+        "                       (         \n"
+        "    (  (        (      )\ )      \n"
+        "    )\))(   '(  )\ )  (()/( (    \n"
+        "   ((_)()\ ) )\(()/(   /(_)))\   \n"
+        "   _(())\_)(|(_)/(_))_(_)) ((_)  \n"
+        "   \ \((_)/ /(_|_)) __| |  | __| \n"
+        "    \ \/\/ / | | | (_ | |__| _|  \n"
+        "     \_/\_/  |_|  \___|____|___| \n"
+        "   ```"
     )
     embed.add_field(name="", value=ascii_art, inline=False)
 
     # Send the embed as a follow-up to the interaction
     await interaction.followup.send(embed=embed)
-
 
 def run_discord_bot():
     try:
@@ -362,6 +420,6 @@ def run_discord_bot():
         if client:
             asyncio.run(client.close())
 
-
 if __name__ == "__main__":
     run_discord_bot()
+  
