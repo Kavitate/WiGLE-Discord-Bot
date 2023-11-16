@@ -7,8 +7,13 @@
 This Discord bot is used to pull a user's stats from [WiGLE](https://wigle.net/) using WiGLE's API as shown below.
 
 <p float="left">
-  <img align="center" src="https://i.imgur.com/yzcHuNu.png" width="400" height="450"/>
-  <img align="right" src="https://i.imgur.com/PtFZrBb.png" width="400" height="450"/>
+  <img align="center" src="https://i.imgur.com/BB17I72.png" width="350" height="400"/>
+  <img align="right" src="https://i.imgur.com/RB42Vmb.png" width="350" height="400"/>
+</p>
+
+<p float="left">
+  <img align="center" src="https://i.imgur.com/2fxu3Cu.png" width="350" height="400"/>
+  <img align="right" src="https://i.imgur.com/c3Yg2zb.png" width="350" height="400"/>
 </p>
 
 ## Variables
@@ -18,12 +23,6 @@ Prior to using the bot the following lines of code must be changed in the `confi
 - Replace `YOUR-ENCODED-FOR-USE-KEY-HERE` with your WiGLE API Key.
   - Your API key can be found [here](https://api.wigle.net/), select your account page in the lower right, then select "Show My Token".
   - The token you are looking for will be listed as the "Encoded for use".
-
-You can change the amount of data shown on the group rank and user rank commands by changing the following variables:
-- For `/grouprank` change line 231 from `40` to however many groups you want the bot to show.
-- For `/userrank` change line 304 from `40` to however many users you want the bot to show.
-
-:warning: Note that neither of these commands are designed to be split for Discord. If you enter a number that would produce an output over Discord's 2,000 character limit, it will not go through.
 
 ## Commands
 Once the above lines have been updated run the bot using the following commands:
