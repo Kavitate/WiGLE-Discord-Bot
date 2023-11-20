@@ -6,7 +6,8 @@ import logging
 import inflect
 import time
 from datetime import datetime
-from discord.ui import View
+from discord import ButtonStyle
+from discord.ui import Button, View
 
 EMBED_COLOR_USER = 0xFF00FF  # Magenta
 EMBED_COLOR_GROUP_RANK = 0x0000FF  # Bright Red
@@ -268,6 +269,15 @@ class GroupView(View):
         item.disabled = True  # Disable all buttons
     await self.message.edit(view=self)  # Update the message with the new view
 
+class HelpView(View):
+  def __init__(self):
+      super().__init__(timeout=None)
+
+      # Create the buttons
+      self.add_item(Button(label="Kavitate", style=ButtonStyle.link, url="https://github.com/Kavitate"))
+      self.add_item(Button(label="WiGLE", style=ButtonStyle.link, url="https://wigle.net"))
+      self.add_item(Button(label="RocketGod", style=ButtonStyle.link, url="https://github.com/RocketGod-git"))
+
 client = WigleBot(wigle_api_key=wigle_api_key)
 
 @client.tree.command(name="user", description="Get stats for a WiGLE user.")
@@ -434,8 +444,11 @@ async def help_command(interaction: discord.Interaction):
     )
     embed.add_field(name="", value=ascii_art, inline=False)
 
+    # Create the view
+    view = HelpView()
+
     # Send the embed as a follow-up to the interaction
-    await interaction.followup.send(embed=embed)
+    await interaction.followup.send(embed=embed, view=view)
 
 def run_discord_bot():
     try:
@@ -448,3 +461,4 @@ def run_discord_bot():
 
 if __name__ == "__main__":
     run_discord_bot()
+  
