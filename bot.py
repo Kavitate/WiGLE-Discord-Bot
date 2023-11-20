@@ -158,10 +158,11 @@ class WigleBot(discord.Client):
 
 class UserRankView(discord.ui.View):
   def __init__(self, users, group):
-      super().__init__()
+      super().__init__(timeout=10)
       self.users = users
       self.group = group
       self.page = 0
+      self.message = None  # Add this line to initialize the 'message' attribute
       self.update_button()
 
   def update_button(self):
@@ -189,7 +190,7 @@ class UserRankView(discord.ui.View):
           self.page -= 1
           self.update_button()
           await interaction.response.edit_message(embed=self.embed, view=self)
-  
+
   @discord.ui.button(label="Reset", style=discord.ButtonStyle.red)
   async def reset_page(self, interaction: discord.Interaction, button: discord.ui.Button):
       self.page = 0
@@ -203,11 +204,22 @@ class UserRankView(discord.ui.View):
           self.update_button()
           await interaction.response.edit_message(embed=self.embed, view=self)
 
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if self.message is None:
+        self.message = interaction.message  # Set the 'message' attribute when the view is sent
+    return True
+
+  async def on_timeout(self):
+    for item in self.children:
+        item.disabled = True  # Disable all buttons
+    await self.message.edit(view=self)  # Update the message with the new view
+
 class GroupView(View):
   def __init__(self, groups):
-      super().__init__()
+      super().__init__(timeout=10)
       self.groups = groups
       self.page = 0
+      self.message = None  # Add this line to initialize the 'message' attribute
       self.p = inflect.engine()  # Create an instance of the inflect library
       self.update_buttons()
 
@@ -245,6 +257,16 @@ class GroupView(View):
         rankings += f"**{rank}:** {groupName} | **Total:** {discovered}\n"
     embed = discord.Embed(title="WiGLE Group Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
     return embed
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if self.message is None:
+        self.message = interaction.message  # Set the 'message' attribute when the view is sent
+    return True
+
+  async def on_timeout(self):
+    for item in self.children:
+        item.disabled = True  # Disable all buttons
+    await self.message.edit(view=self)  # Update the message with the new view
 
 client = WigleBot(wigle_api_key=wigle_api_key)
 
@@ -287,7 +309,7 @@ async def user(interaction: discord.Interaction, username: str):
 
             last_event_datetime = datetime.strptime(last_event_date_str, "%Y%m%d")
             first_event_datetime = datetime.strptime(first_event_date_str, "%Y%m%d")
-          
+
             last_event_formatted = last_event_datetime.strftime("%B %d, %Y")
             first_event_formatted = first_event_datetime.strftime("%B %d, %Y")
 
@@ -426,4 +448,3 @@ def run_discord_bot():
 
 if __name__ == "__main__":
     run_discord_bot()
-  
