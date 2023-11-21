@@ -428,7 +428,7 @@ async def help_command(interaction: discord.Interaction):
     color = 0x00FF00  # Bright Green
 
     embed = discord.Embed(title="WiGLE Bot Help", description=help_text, color=color)
-    embed.set_footer(text="WiGLE Bot Wardriving by Kavitate & RocketGod")
+    embed.set_footer(text="WiGLE Wardriving Bot by Kavitate & RocketGod")
 
     ascii_art = (
         "```"
