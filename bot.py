@@ -157,6 +157,48 @@ class WigleBot(discord.Client):
             logging.error(f"Failed to fetch user rank from URL: {url}, {e}")
             return None
 
+    async def fetch_wigle_alltime_rank(self):
+      req = f"https://api.wigle.net/api/v2/stats/standings?sort=discovered&pagestart=1"
+      headers = {
+          "Authorization": f'Basic {config["wigle_api_key"]}',
+          "Cache-Control": "no-cache",
+      }
+      try:
+          async with self.session.get(req, headers=headers) as response:
+              if response.status != 200:
+                  logging.error(f"Error fetching WiGLE user ranks: {response.status}")
+                  return {"success": False, "message": f"HTTP error {response.status}"}
+
+              data = await response.json()
+              if data.get("success") and "results" in data:
+                  return data
+              else:
+                  return {"success": False, "message": "No rank data available."}
+      except Exception as e:
+          logging.error(f"Failed to fetch WiGLE user ranks: {e}")
+          return {"success": False, "message": str(e)}
+
+    async def fetch_wigle_month_rank(self):
+      req = f"https://api.wigle.net/api/v2/stats/standings?sort=monthcount&pagestart=1"
+      headers = {
+          "Authorization": f'Basic {config["wigle_api_key"]}',
+          "Cache-Control": "no-cache",
+      }
+      try:
+          async with self.session.get(req, headers=headers) as response:
+              if response.status != 200:
+                  logging.error(f"Error fetching WiGLE monthly ranking: {response.status}")
+                  return {"success": False, "message": f"HTTP error {response.status}"}
+
+              data = await response.json()
+              if data.get("success") and "results" in data:
+                  return data
+              else:
+                  return {"success": False, "message": "No rank data available."}
+      except Exception as e:
+          logging.error(f"Failed to fetch WiGLE monthly ranking: {e}")
+          return {"success": False, "message": str(e)}
+
 class UserRankView(discord.ui.View):
   def __init__(self, users, group):
       super().__init__(timeout=10)
@@ -257,6 +299,114 @@ class GroupView(View):
         rank = self.p.ordinal(i)
         rankings += f"**{rank}:** {groupName} | **Total:** {discovered}\n"
     embed = discord.Embed(title="WiGLE Group Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
+    return embed
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if self.message is None:
+        self.message = interaction.message  # Set the 'message' attribute when the view is sent
+    return True
+
+  async def on_timeout(self):
+    for item in self.children:
+        item.disabled = True  # Disable all buttons
+    await self.message.edit(view=self)  # Update the message with the new view
+
+class AllTime(View):
+  def __init__(self, results):
+      super().__init__(timeout=10)
+      self.results = results
+      self.page = 0
+      self.message = None  # Add this line to initialize the 'message' attribute
+      self.p = inflect.engine()  # Create an instance of the inflect library
+      self.update_buttons()
+
+  def update_buttons(self):
+      self.previous.disabled = self.page == 0
+      self.next.disabled = self.page == len(self.results) // 10 - 1
+
+  @discord.ui.button(label="< Back", style=discord.ButtonStyle.blurple)
+  async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page -= 1
+      self.update_buttons()
+      await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+  @discord.ui.button(label="Reset", style=discord.ButtonStyle.danger)
+  async def reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page = 0
+      self.update_buttons()
+      await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+  @discord.ui.button(label="Next >", style=discord.ButtonStyle.blurple)
+  async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page += 1
+      self.update_buttons()
+      await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+  def get_embed(self):
+    start = self.page * 10
+    end = start + 10
+    user_slice = self.results[start:end]
+    rankings = ""
+    for i, results in enumerate(user_slice, start=start+1):
+        userName = results["userName"]
+        discoveredWiFiGPS = results["discoveredWiFiGPS"]
+        rank = self.p.ordinal(i)
+        rankings += f"**{rank}:** {userName} | **Total:** {discoveredWiFiGPS}\n"
+    embed = discord.Embed(title="WiGLE All-Time User Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
+    return embed
+
+  async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    if self.message is None:
+        self.message = interaction.message  # Set the 'message' attribute when the view is sent
+    return True
+
+  async def on_timeout(self):
+    for item in self.children:
+        item.disabled = True  # Disable all buttons
+    await self.message.edit(view=self)  # Update the message with the new view
+
+class MonthRank(View):
+  def __init__(self, results):
+      super().__init__(timeout=10)
+      self.results = results
+      self.page = 0
+      self.message = None  # Add this line to initialize the 'message' attribute
+      self.p = inflect.engine()  # Create an instance of the inflect library
+      self.update_buttons()
+
+  def update_buttons(self):
+      self.previous.disabled = self.page == 0
+      self.next.disabled = self.page == len(self.results) // 10 - 1
+
+  @discord.ui.button(label="< Back", style=discord.ButtonStyle.blurple)
+  async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page -= 1
+      self.update_buttons()
+      await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+  @discord.ui.button(label="Reset", style=discord.ButtonStyle.danger)
+  async def reset(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page = 0
+      self.update_buttons()
+      await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+  @discord.ui.button(label="Next >", style=discord.ButtonStyle.blurple)
+  async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+      self.page += 1
+      self.update_buttons()
+      await interaction.response.edit_message(embed=self.get_embed(), view=self)
+
+  def get_embed(self):
+    start = self.page * 10
+    end = start + 10
+    user_slice = self.results[start:end]
+    rankings = ""
+    for i, results in enumerate(user_slice, start=start+1):
+        userName = results["userName"]
+        eventMonthCount = results["eventMonthCount"]
+        rank = self.p.ordinal(i)
+        rankings += f"**{rank}:** {userName} | **Total:** {eventMonthCount}\n"
+    embed = discord.Embed(title="WiGLE Monthly User Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
     return embed
 
   async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -412,6 +562,34 @@ async def userrank(interaction: discord.Interaction, group: str):
         logging.error(f"An error occurred: {e}")
         await interaction.followup.send(f"An error occurred: {e}")
 
+@client.tree.command(name="alltime", description="Get WiGLE All-Time User Rankings.")
+async def alltime(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=False)
+
+    # Fetch the group ranks from the WiGLE API
+    response = await client.fetch_wigle_alltime_rank()
+
+    if "success" in response and response["success"] is True:
+        results = response["results"]
+        view = AllTime(results)
+        await interaction.followup.send(embed=view.get_embed(), view=view)
+    else:
+        await interaction.followup.send("Failed to fetch user ranks: " + response.get("message", "Unknown error"))
+
+@client.tree.command(name="monthly", description="Get WiGLE Monthly User Rankings.")
+async def alltime(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=False)
+
+    # Fetch the group ranks from the WiGLE API
+    response = await client.fetch_wigle_month_rank()
+
+    if "success" in response and response["success"] is True:
+        results = response["results"]
+        view = MonthRank(results)
+        await interaction.followup.send(embed=view.get_embed(), view=view)
+    else:
+        await interaction.followup.send("Failed to fetch monthly user rankings: " + response.get("message", "Unknown error"))
+
 @client.tree.command(name="help", description="Displays help information for WiGLE Bot commands.")
 async def help_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=False)
@@ -422,6 +600,8 @@ async def help_command(interaction: discord.Interaction):
         "`/user <username>` - Get stats for a WiGLE user.\n"
         "`/grouprank` - Get WiGLE group rankings.\n"
         "`/userrank` - Get WiGLE user rankings for a group.\n"
+        "`/alltime` - Get WiGLE All-Time user rankings.\n"
+        "`/monthly` - Get WiGLE monthly user rankings.\n"
         "`/help` - Shows this help message.\n\n"
     )
 
@@ -461,4 +641,4 @@ def run_discord_bot():
 
 if __name__ == "__main__":
     run_discord_bot()
-  
+    
