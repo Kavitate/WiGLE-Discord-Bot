@@ -591,7 +591,7 @@ async def alltime(interaction: discord.Interaction):
 
 
 @client.tree.command(name="monthly", description="Get WiGLE Monthly User Rankings.")
-async def alltime(interaction: discord.Interaction):
+async def monthly(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=False)
 
     # Fetch the group ranks from the WiGLE API
