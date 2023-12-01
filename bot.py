@@ -161,7 +161,7 @@ class WigleBot(discord.Client):
             return None
 
     async def fetch_wigle_alltime_rank(self):
-        req = f"https://api.wigle.net/api/v2/stats/standings?sort=discovered&pagestart=1"
+        req = f"https://api.wigle.net/api/v2/stats/standings?sort=discovered&pagestart=0"
         headers = {
             "Authorization": f'Basic {config["wigle_api_key"]}',
             "Cache-Control": "no-cache",
@@ -174,6 +174,8 @@ class WigleBot(discord.Client):
 
                 data = await response.json()
                 if data.get("success") and "results" in data:
+                    # Remove the user named "Anonymous" from the results
+                    data["results"] = [result for result in data["results"] if result["userName"] != "anonymous"]
                     return data
                 else:
                     return {"success": False, "message": "No rank data available."}
@@ -182,7 +184,7 @@ class WigleBot(discord.Client):
             return {"success": False, "message": str(e)}
 
     async def fetch_wigle_month_rank(self):
-        req = f"https://api.wigle.net/api/v2/stats/standings?sort=monthcount&pagestart=1"
+        req = f"https://api.wigle.net/api/v2/stats/standings?sort=monthcount&pagestart=0"
         headers = {
             "Authorization": f'Basic {config["wigle_api_key"]}',
             "Cache-Control": "no-cache",
@@ -195,6 +197,8 @@ class WigleBot(discord.Client):
 
                 data = await response.json()
                 if data.get("success") and "results" in data:
+                    # Remove the user named "Anonymous" from the results
+                    data["results"] = [result for result in data["results"] if result["userName"] != "anonymous"]
                     return data
                 else:
                     return {"success": False, "message": "No rank data available."}
