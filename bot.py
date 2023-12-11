@@ -217,8 +217,12 @@ class UserRankView(discord.ui.View):
         self.update_button()
 
     def update_button(self):
-        self.previous_page.disabled = self.page == 0
-        self.next_page.disabled = self.page == len(self.users) // 10 - 1
+        if len(self.users) == 0 or self.page >= len(self.users) // 10:
+            self.previous_page.disabled = False
+            self.next_page.disabled = True
+        else:
+            self.previous_page.disabled = self.page == 0
+            self.next_page.disabled = False  # Always enable the "Next" button
 
         p = inflect.engine()
         filtered_users = [user for user in self.users if "L" not in user["status"]]
