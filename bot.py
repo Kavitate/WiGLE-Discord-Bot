@@ -139,7 +139,7 @@ class WigleBot(discord.Client):
                             return {"success": True, "groupId": group_id, "url": url}
 
                     # No group with the specified name found
-                    return {"success": False, "message": f"No group named '{group_name}' found"}
+                    return {"success": False, "message": f"No group named '{group_name}' found."}
                 else:
                     logging.warning(f"WiGLE group ID fetch error for '{group_name}': {data['message']}")
                     return {"success": False, "message": data["message"]}
