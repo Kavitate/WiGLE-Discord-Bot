@@ -38,7 +38,7 @@ Once the above variables have been updated, run the bot using the following comm
 - `/monthly` for monthly user rankings.
 - `/help` to show a list of available bot commands.
 
-# Credits
+## Credits
 Further development of this bot is in collaboration with [RocketGod](https://github.com/RocketGod-git).
 
 The idea for this bot was inspired by the [WiGLE Bot Repo](https://github.com/INIT6Source/WiGLE-bot) made by [INIT6Source](https://github.com/INIT6Source).
