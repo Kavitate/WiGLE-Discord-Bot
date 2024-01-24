@@ -1,6 +1,3 @@
-# This version uses a single /wigle command and uses a GUI style UI with dropdown menus and input boxes
-# instead of a /command for each function
-
 import aiohttp
 import asyncio
 import json
@@ -206,25 +203,40 @@ class WigleBot(discord.Client):
             logging.warning(f"Date format error for 'first': {first}")
 
         embed = discord.Embed(title=f"WiGLE User Stats for '{username}'", color=0x1E90FF)
-        embed.add_field(name="Username", value=username, inline=True)
-        embed.add_field(name="Rank", value=rank, inline=True)
-        embed.add_field(name="Previous Rank", value=prevRank, inline=True)
-        embed.add_field(name="Monthly Rank", value=monthRank, inline=True)
-        embed.add_field(name="Last Month's Rank", value=prevMonthRank, inline=True)
-        embed.add_field(name="Events This Month", value=eventMonthCount, inline=True)
-        embed.add_field(name="Last Month's Events", value=eventPrevMonthCount, inline=True)
-        embed.add_field(name="Discovered WiFi GPS", value=discoveredWiFiGPS, inline=True)
-        embed.add_field(name="Discovered WiFi GPS Percent", value=f"{discoveredWiFiGPSPercent}%", inline=True)
-        embed.add_field(name="Discovered WiFi", value=discoveredWiFi, inline=True)
-        embed.add_field(name="Discovered Cell GPS", value=discoveredCellGPS, inline=True)
-        embed.add_field(name="Discovered Cell", value=discoveredCell, inline=True)
-        embed.add_field(name="Discovered BT GPS", value=discoveredBtGPS, inline=True)
-        embed.add_field(name="Discovered BT", value=discoveredBt, inline=True)
-        embed.add_field(name="Total WiFi Locations", value=totalWiFiLocations, inline=True)
-        embed.add_field(name="Last Event", value=last_event_formatted, inline=True)
-        embed.add_field(name="First Ever Event", value=first_event_formatted, inline=True)
 
-        # Append timestamp to image URL to avoid caching
+        # Stats
+        stats = (
+            f"**Username**: {username}\n"
+            f"**Monthly Rank**: {monthRank}\n"
+            f"**Last Month's Rank**: {prevMonthRank}\n"            
+            f"**Rank**: {rank}\n"
+            f"**Previous Rank**: {prevRank}\n"
+        )
+        embed.add_field(name="📊 **Stats**", value=stats + "\n", inline=False)
+
+        # Event Information
+        event_info = (
+            f"**Events This Month**: {eventMonthCount}\n"
+            f"**Last Month's Events**: {eventPrevMonthCount}\n"
+            f"**First Ever Event**: {first_event_formatted}\n"
+            f"**Last Event**: {last_event_formatted}"
+        )
+        embed.add_field(name="📅 **Event Information**", value=event_info + "\n", inline=False)
+
+        # Discovery Statistics
+        discovery_stats = (
+            f"**Discovered WiFi GPS**: {discoveredWiFiGPS}\n"
+            f"**Discovered WiFi GPS Percent**: {discoveredWiFiGPSPercent}%\n"
+            f"**Discovered WiFi**: {discoveredWiFi}\n"
+            f"**Discovered Cell GPS**: {discoveredCellGPS}\n"
+            f"**Discovered Cell**: {discoveredCell}\n"
+            f"**Discovered BT GPS**: {discoveredBtGPS}\n"
+            f"**Discovered BT**: {discoveredBt}\n"
+            f"**Total WiFi Locations**: {totalWiFiLocations}"
+        )
+        embed.add_field(name="🔍 **Discovery Statistics**", value=discovery_stats, inline=False)
+
+        # Image
         image_url = data.get("imageBadgeUrl", "")
         if image_url:
             image_url += f"?nocache={timestamp}"
