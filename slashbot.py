@@ -235,7 +235,8 @@ class UserRankView(discord.ui.View):
             username = user["username"]
             discovered = user["discovered"]
             rank = p.ordinal(i)
-            rankings += f"**{rank}:** {username} | **Total:** {discovered}\n"
+            discovered_formatted = "{:,}".format(discovered)
+            rankings += f"**{rank}:** {username} | **Total:** {discovered_formatted}\n"
 
         self.embed = discord.Embed(title=f"User Rankings for '{self.group}'", color=0x1E90FF, description=rankings)
 
@@ -309,8 +310,9 @@ class GroupView(View):
         for i, group in enumerate(group_slice, start=start + 1):
             groupName = group["groupName"]
             discovered = group["discovered"]
+            formatted_discovered = "{:,}".format(discovered)
             rank = self.p.ordinal(i)
-            rankings += f"**{rank}:** {groupName} | **Total:** {discovered}\n"
+            rankings += f"**{rank}:** {groupName} | **Total:** {formatted_discovered}\n"
         embed = discord.Embed(title="WiGLE Group Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
         return embed
 
@@ -365,7 +367,8 @@ class AllTime(View):
             userName = results["userName"]
             discoveredWiFiGPS = results["discoveredWiFiGPS"]
             rank = self.p.ordinal(i)
-            rankings += f"**{rank}:** {userName} | **Total:** {discoveredWiFiGPS}\n"
+            formatted_discoveredWiFiGPS = "{:,}".format(discoveredWiFiGPS)
+            rankings += f"**{rank}:** {userName} | **Total:** {formatted_discoveredWiFiGPS}\n"
         embed = discord.Embed(title="WiGLE All-Time User Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
         return embed
 
@@ -420,7 +423,7 @@ class MonthRank(View):
             userName = results["userName"]
             eventMonthCount = results["eventMonthCount"]
             rank = self.p.ordinal(i)
-            rankings += f"**{rank}:** {userName} | **Total:** {eventMonthCount}\n"
+            rankings += f"**{rank}:** {userName} | **Total:** {eventMonthCount:,}\n"
         embed = discord.Embed(title="WiGLE Monthly User Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
         return embed
 
@@ -496,20 +499,20 @@ async def user(interaction: discord.Interaction, username: str):
 
             # Add fields to embed
             embed.add_field(name="Username", value=username, inline=True)
-            embed.add_field(name="Rank", value=rank, inline=True)
-            embed.add_field(name="Previous Rank", value=prevRank, inline=True)
-            embed.add_field(name="Monthly Rank", value=monthRank, inline=True)
-            embed.add_field(name="Last Month's Rank", value=prevMonthRank, inline=True)
-            embed.add_field(name="Events This Month", value=eventMonthCount, inline=True)
-            embed.add_field(name="Last Month's Events", value=eventPrevMonthCount, inline=True)
-            embed.add_field(name="Discovered WiFi GPS", value=discoveredWiFiGPS, inline=True)
-            embed.add_field(name="Discovered WiFi GPS Percent", value=discoveredWiFiGPSPercent, inline=True)
-            embed.add_field(name="Discovered WiFi", value=discoveredWiFi, inline=True)
-            embed.add_field(name="Discovered Cell GPS", value=discoveredCellGPS, inline=True)
-            embed.add_field(name="Discovered Cell", value=discoveredCell, inline=True)
-            embed.add_field(name="Discovered BT GPS", value=discoveredBtGPS, inline=True)
-            embed.add_field(name="Discovered BT", value=discoveredBt, inline=True)
-            embed.add_field(name="Total WiFi Locations", value=totalWiFiLocations, inline=True)
+            embed.add_field(name="Rank", value=format(rank, ","), inline=True)
+            embed.add_field(name="Previous Rank", value=format(prevRank, ","), inline=True)
+            embed.add_field(name="Monthly Rank", value=format(monthRank, ","), inline=True)
+            embed.add_field(name="Last Month's Rank", value=format(prevMonthRank, ","), inline=True)
+            embed.add_field(name="Events This Month", value=format(eventMonthCount, ","), inline=True)
+            embed.add_field(name="Last Month's Events", value=format(eventPrevMonthCount, ","), inline=True)
+            embed.add_field(name="Discovered WiFi GPS", value=format(discoveredWiFiGPS, ","), inline=True)
+            embed.add_field(name="Discovered WiFi GPS Percent", value=format(discoveredWiFiGPSPercent, ","), inline=True)
+            embed.add_field(name="Discovered WiFi", value=format(discoveredWiFi, ","), inline=True)
+            embed.add_field(name="Discovered Cell GPS", value=format(discoveredCellGPS, ","), inline=True)
+            embed.add_field(name="Discovered Cell", value=format(discoveredCell, ","), inline=True)
+            embed.add_field(name="Discovered BT GPS", value=format(discoveredBtGPS, ","), inline=True)
+            embed.add_field(name="Discovered BT", value=format(discoveredBt, ","), inline=True)
+            embed.add_field(name="Total WiFi Locations", value=format(totalWiFiLocations, ","), inline=True)
             embed.add_field(name="Last Event", value=last_event_formatted, inline=True)
             embed.add_field(name="First Ever Event", value=first_event_formatted, inline=True)
 
@@ -668,3 +671,4 @@ def run_discord_bot():
 
 if __name__ == "__main__":
     run_discord_bot()
+    
