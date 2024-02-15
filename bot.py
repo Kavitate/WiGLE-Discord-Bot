@@ -122,6 +122,7 @@ class WigleBot(discord.Client):
 
     async def on_ready(self):
         logging.info(f"Bot {self.user.name} is ready!")
+        logging.info(f"Bot is in {len(self.guilds)} servers")  # Display the number of servers
         self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60))
         await self.tree.sync()
 
@@ -133,7 +134,12 @@ class WigleBot(discord.Client):
                 await self.session.close()
 
     async def fetch_wigle_user_stats(self, interaction: discord.Interaction, username: str):
-        logging.info(f"Fetching WiGLE stats for username: {username}")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message" 
+
+        logging.info(f"{user} searched for '{username}' on {server_name}")
+
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
 
@@ -158,9 +164,8 @@ class WigleBot(discord.Client):
                 data = await response.json()
                 if data.get("success") and "statistics" in data and "userName" in data["statistics"]:
                     if data["statistics"]["userName"].lower() == username.lower():
-                        logging.info(f"Fetched WiGLE user stats for {username}")
                         embed = self.create_user_stats_embed(data, timestamp)
-                        await interaction.followup.send(embed=embed)
+                        await interaction.edit_original_response(embed=embed, view=None)
                     else:
                         await interaction.followup.send("User not found.")
                 else:
@@ -213,8 +218,8 @@ class WigleBot(discord.Client):
             f"**Username**: {username}\n"
             f"**Monthly Rank**: {monthRank}\n"
             f"**Last Month's Rank**: {prevMonthRank}\n"            
-            f"**Rank**: {rank}\n"
-            f"**Previous Rank**: {prevRank}\n\n"
+            f"**All-Time Rank**: {rank}\n"
+            f"**Previous All-Time Rank**: {prevRank}\n\n"
         )
         embed.add_field(name="📊 **Stats**", value=stats + "\n", inline=False)
 
@@ -249,6 +254,12 @@ class WigleBot(discord.Client):
         return embed
 
     async def fetch_wigle_group_rank(self, interaction: discord.Interaction):
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} accessed group rankings on {server_name}")
+
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
             
@@ -270,7 +281,7 @@ class WigleBot(discord.Client):
                 if data.get("success") and "groups" in data:
                     groups = data["groups"]
                     view = GroupView(groups)
-                    sent_message = await interaction.followup.send(embed=view.get_embed(), view=view)
+                    sent_message = await interaction.edit_original_response(embed=view.get_embed(), view=view)
                     view.message = sent_message                          
                 else:
                     message = data.get("message", "No group data available.")
@@ -323,7 +334,12 @@ class WigleBot(discord.Client):
             return None
 
     async def fetch_wigle_alltime_rank(self, interaction: discord.Interaction):
-        logging.info("Fetching WiGLE all-time user ranks")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} viewed all-time user rankings on {server_name}")
+
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
             
@@ -344,7 +360,7 @@ class WigleBot(discord.Client):
                 if data.get("success") and "results" in data:
                     data["results"] = [result for result in data["results"] if result["userName"] != "anonymous"]
                     view = AllTime(data["results"])
-                    sent_message = await interaction.followup.send(embed=view.get_embed(), view=view)
+                    sent_message = await interaction.edit_original_response(embed=view.get_embed(), view=view)
                     view.message = sent_message
                 else:
                     message = data.get("message", "No rank data available.")
@@ -354,7 +370,12 @@ class WigleBot(discord.Client):
             await interaction.followup.send(str(e))
 
     async def fetch_wigle_month_rank(self, interaction: discord.Interaction):
-        logging.info("Fetching WiGLE monthly user rankings")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} requested monthly user rankings on {server_name}")
+
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
 
@@ -375,7 +396,7 @@ class WigleBot(discord.Client):
                 if data.get("success") and "results" in data:
                     data["results"] = [result for result in data["results"] if result["userName"] != "anonymous"]
                     view = MonthRank(data["results"])
-                    await interaction.followup.send(embed=view.get_embed(), view=view)
+                    await interaction.edit_original_response(embed=view.get_embed(), view=view)
                 else:
                     message = data.get("message", "No rank data available.")
                     await interaction.followup.send(message)
@@ -383,8 +404,13 @@ class WigleBot(discord.Client):
             logging.error(f"Failed to fetch WiGLE monthly ranking: {e}")
             await interaction.followup.send(str(e))
 
+
     async def fetch_wigle_user_rank(self, interaction: discord.Interaction, group: str):
-        logging.info(f"Fetching WiGLE user ranks for group: {group}")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} checked user rankings for group '{group}' on {server_name}")
 
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
@@ -400,7 +426,7 @@ class WigleBot(discord.Client):
                 if group_data:
                     users = group_data.get("users", [])
                     view = UserRankView(users, group)
-                    await interaction.followup.send(embed=view.embed, view=view)
+                    await interaction.edit_original_response(embed=view.embed, view=view)
                 else:
                     await interaction.followup.send("Failed to fetch group data from the URL.")
             else:
@@ -411,8 +437,13 @@ class WigleBot(discord.Client):
             logging.warning(f"WiGLE group ID fetch error for {group}: {error_message}")
             await interaction.followup.send(error_message)
 
+
     async def show_credits(self, interaction: discord.Interaction):
-        logging.info("Displaying credits")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} viewed credits on {server_name}")
 
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
@@ -426,6 +457,7 @@ class WigleBot(discord.Client):
         color = 0x00FF00  # Bright Green
         embed = discord.Embed(title="Credits", description=credits_text, color=color)
         embed.set_footer(text="WiGLE Wardriving Bot by Kavitate & RocketGod")
+        server_count = len(self.guilds)
         
         ascii_art = (
             "```"
@@ -438,11 +470,12 @@ class WigleBot(discord.Client):
             "    \ \/\/ / | | | (_ | |__| _|  \n"
             "     \_/\_/  |_|  \___|____|___| \n"
             "   ```"
+            f"\nThis bot is used in {server_count} servers."
         )
         embed.add_field(name="", value=ascii_art, inline=False)
 
         view = HelpView()  
-        await interaction.followup.send(embed=embed, view=view)
+        await interaction.edit_original_response(embed=embed, view=view)
 
 
 class UserRankView(discord.ui.View):
