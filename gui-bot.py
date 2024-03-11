@@ -14,6 +14,7 @@ EMBED_COLOR_USER = 0xFF00FF  # Magenta
 EMBED_COLOR_GROUP_RANK = 0x0000FF  # Bright Red
 
 logging.basicConfig(level=logging.DEBUG)
+logging.getLogger('discord.gateway').setLevel(logging.WARNING)
 
 
 def load_config():
@@ -37,50 +38,64 @@ discord_bot_token = config["discord_bot_token"]
 wigle_api_key = config["wigle_api_key"]
 
 
+def format_number(number):
+    return "{:,}".format(number)
+
+
 class WigleCommandView(View):
     def __init__(self, bot):
         super().__init__()
         self.bot = bot
+        # Initialize buttons with their respective labels and unique custom_id
+        self.add_item(Button(label="User Stats", style=ButtonStyle.blurple, custom_id="user_stats"))
+        self.add_item(Button(label="Group Rank", style=ButtonStyle.blurple, custom_id="group_rank"))
+        self.add_item(Button(label="All-Time Rankings", style=ButtonStyle.blurple, custom_id="alltime_rankings"))
+        self.add_item(Button(label="Monthly Rankings", style=ButtonStyle.blurple, custom_id="monthly_rankings"))
+        self.add_item(Button(label="User Rankings for Group", style=ButtonStyle.blurple, custom_id="user_rankings_for_group"))
+        self.add_item(Button(label="Credits", style=ButtonStyle.blurple, custom_id="credits"))
 
     async def on_timeout(self):
         for item in self.children:
             item.disabled = True
 
-    async def interact(self, interaction: discord.Interaction, command_name: str):
-        if command_name == "user":
-            modal = UserStatsModal(bot=self.bot)
-            await interaction.response.send_modal(modal)
+    # Individual callback methods for each button
+    async def user_stats_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        modal = UserStatsModal(bot=self.bot)
+        await interaction.response.send_modal(modal)
 
-        elif command_name == "userrank":
-            modal = GroupNameModal(bot=self.bot)
-            await interaction.response.send_modal(modal)
+    async def group_rank_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.bot.fetch_wigle_group_rank(interaction)
 
-        elif command_name == "group":
-            await self.bot.fetch_wigle_group_rank(interaction)
+    async def alltime_rankings_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.bot.fetch_wigle_alltime_rank(interaction)
 
-        elif command_name == "alltime":
-            await self.bot.fetch_wigle_alltime_rank(interaction)
+    async def monthly_rankings_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.bot.fetch_wigle_month_rank(interaction)
 
-        elif command_name == "month":
-            await self.bot.fetch_wigle_month_rank(interaction)
+    async def user_rankings_for_group_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        modal = GroupNameModal(bot=self.bot)
+        await interaction.response.send_modal(modal)
 
-        elif command_name == "credits":
-            await self.bot.show_credits(interaction)
+    async def credits_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.bot.show_credits(interaction)
 
-    @discord.ui.select(
-        placeholder="Choose a WiGLE command",
-        options=[
-            discord.SelectOption(label="User Stats", value="user"),
-            discord.SelectOption(label="Group Rank", value="group"),
-            discord.SelectOption(label="All-Time Rankings", value="alltime"),
-            discord.SelectOption(label="Monthly Rankings", value="month"),
-            discord.SelectOption(label="User Rankings for Group", value="userrank"),
-            discord.SelectOption(label="Credits", value="credits")
-        ],
-    )
-    async def select_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
-        selected_value = select.values[0]  
-        await self.interact(interaction, selected_value) 
+    # Handle button interactions
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        custom_id_to_callback = {
+            "user_stats": self.user_stats_callback,
+            "group_rank": self.group_rank_callback,
+            "alltime_rankings": self.alltime_rankings_callback,
+            "monthly_rankings": self.monthly_rankings_callback,
+            "user_rankings_for_group": self.user_rankings_for_group_callback,
+            "credits": self.credits_callback
+        }
+
+        button = discord.utils.get(self.children, custom_id=interaction.data['custom_id'])
+
+        if button and button.custom_id in custom_id_to_callback:
+            await custom_id_to_callback[button.custom_id](interaction, button)
+            return True 
+        return False  
 
 
 class UserStatsModal(discord.ui.Modal):
@@ -118,8 +133,19 @@ class WigleBot(discord.Client):
 
     async def on_ready(self):
         logging.info(f"Bot {self.user.name} is ready!")
-        self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60))
-        await self.tree.sync()
+        logging.info(f"Bot is in {len(self.guilds)} servers")
+        self.session = aiohttp.ClientSession()
+
+        for guild in self.guilds:
+            owner = guild.owner  
+            if owner is None:  
+                try:
+                    owner = await guild.fetch_member(guild.owner_id)  
+                except discord.HTTPException:
+                    owner = "Unable to fetch owner"  
+
+            owner_name = owner if isinstance(owner, str) else f"{owner.name}#{owner.discriminator}"
+            logging.info(f" - {guild.name} (Owner: {owner_name})")
 
     async def close(self):
         try:
@@ -129,7 +155,12 @@ class WigleBot(discord.Client):
                 await self.session.close()
 
     async def fetch_wigle_user_stats(self, interaction: discord.Interaction, username: str):
-        logging.info(f"Fetching WiGLE stats for username: {username}")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message" 
+
+        logging.info(f"{user} searched for '{username}' on {server_name}")
+
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
 
@@ -142,9 +173,11 @@ class WigleBot(discord.Client):
 
         try:
             async with self.session.get(req, headers=headers) as response:
-                if response.status == 404:
-                    logging.info(f"WiGLE user {username} not found.")
-                    await interaction.followup.send("User not found.")
+                if response.status == 403:  
+                    response_text = await response.text()  
+                    print(f"403 Forbidden error received. Response: {response_text}")  
+                    logging.error(f"Error fetching WiGLE user stats for {username}: {response.status}, Response: {response_text}")
+                    await interaction.followup.send(f"HTTP error {response.status}. Check the terminal for more details.")
                     return
                 elif response.status != 200:
                     logging.error(f"Error fetching WiGLE user stats for {username}: {response.status}")
@@ -152,11 +185,14 @@ class WigleBot(discord.Client):
                     return
 
                 data = await response.json()
+                if data is None:
+                    logging.error(f"Received no data for {username}")
+                    await interaction.followup.send("Failed to retrieve data.")
+                    return
                 if data.get("success") and "statistics" in data and "userName" in data["statistics"]:
                     if data["statistics"]["userName"].lower() == username.lower():
-                        logging.info(f"Fetched WiGLE user stats for {username}")
                         embed = self.create_user_stats_embed(data, timestamp)
-                        await interaction.followup.send(embed=embed)
+                        await interaction.edit_original_response(embed=embed, view=None)
                     else:
                         await interaction.followup.send("User not found.")
                 else:
@@ -167,20 +203,20 @@ class WigleBot(discord.Client):
 
     def create_user_stats_embed(self, data, timestamp):
         username = data["statistics"]["userName"]
-        rank = data["statistics"].get("rank")
-        monthRank = data["statistics"].get("monthRank")
-        prevRank = data["statistics"].get("prevRank")
-        prevMonthRank = data["statistics"].get("prevMonthRank")
-        eventMonthCount = data["statistics"].get("eventMonthCount")
-        eventPrevMonthCount = data["statistics"].get("eventPrevMonthCount")
-        discoveredWiFiGPS = data["statistics"].get("discoveredWiFiGPS")
+        rank = format_number(data["statistics"].get("rank", 0))
+        monthRank = format_number(data["statistics"].get("monthRank", 0))
+        prevRank = format_number(data["statistics"].get("prevRank", 0))
+        prevMonthRank = format_number(data["statistics"].get("prevMonthRank", 0))
+        eventMonthCount = format_number(data["statistics"].get("eventMonthCount", 0))
+        eventPrevMonthCount = format_number(data["statistics"].get("eventPrevMonthCount", 0))
+        discoveredWiFiGPS = format_number(data["statistics"].get("discoveredWiFiGPS", 0))
         discoveredWiFiGPSPercent = data["statistics"].get("discoveredWiFiGPSPercent")
-        discoveredWiFi = data["statistics"].get("discoveredWiFi")
-        discoveredCellGPS = data["statistics"].get("discoveredCellGPS")
-        discoveredCell = data["statistics"].get("discoveredCell")
-        discoveredBtGPS = data["statistics"].get("discoveredBtGPS")
-        discoveredBt = data["statistics"].get("discoveredBt")
-        totalWiFiLocations = data["statistics"].get("totalWiFiLocations")
+        discoveredWiFi = format_number(data["statistics"].get("discoveredWiFi", 0))
+        discoveredCellGPS = format_number(data["statistics"].get("discoveredCellGPS", 0))
+        discoveredCell = format_number(data["statistics"].get("discoveredCell", 0))
+        discoveredBtGPS = format_number(data["statistics"].get("discoveredBtGPS", 0))
+        discoveredBt = format_number(data["statistics"].get("discoveredBt", 0))
+        totalWiFiLocations = format_number(data["statistics"].get("totalWiFiLocations", 0))
         last = data["statistics"].get("last", "").split("-")[0]
         first = data["statistics"].get("first", "").split("-")[0]
 
@@ -209,8 +245,8 @@ class WigleBot(discord.Client):
             f"**Username**: {username}\n"
             f"**Monthly Rank**: {monthRank}\n"
             f"**Last Month's Rank**: {prevMonthRank}\n"            
-            f"**Rank**: {rank}\n"
-            f"**Previous Rank**: {prevRank}\n"
+            f"**All-Time Rank**: {rank}\n"
+            f"**Previous All-Time Rank**: {prevRank}\n\n"
         )
         embed.add_field(name="📊 **Stats**", value=stats + "\n", inline=False)
 
@@ -219,7 +255,7 @@ class WigleBot(discord.Client):
             f"**Events This Month**: {eventMonthCount}\n"
             f"**Last Month's Events**: {eventPrevMonthCount}\n"
             f"**First Ever Event**: {first_event_formatted}\n"
-            f"**Last Event**: {last_event_formatted}"
+            f"**Last Event**: {last_event_formatted}\n\n"
         )
         embed.add_field(name="📅 **Event Information**", value=event_info + "\n", inline=False)
 
@@ -245,6 +281,12 @@ class WigleBot(discord.Client):
         return embed
 
     async def fetch_wigle_group_rank(self, interaction: discord.Interaction):
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} accessed group rankings on {server_name}")
+
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
             
@@ -266,9 +308,8 @@ class WigleBot(discord.Client):
                 if data.get("success") and "groups" in data:
                     groups = data["groups"]
                     view = GroupView(groups)
-                    sent_message = await interaction.followup.send(embed=view.get_embed(), view=view)
-                    view.message = sent_message
-                    
+                    sent_message = await interaction.edit_original_response(embed=view.get_embed(), view=view)
+                    view.message = sent_message                          
                 else:
                     message = data.get("message", "No group data available.")
                     await interaction.followup.send(message)
@@ -320,7 +361,12 @@ class WigleBot(discord.Client):
             return None
 
     async def fetch_wigle_alltime_rank(self, interaction: discord.Interaction):
-        logging.info("Fetching WiGLE all-time user ranks")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} viewed all-time user rankings on {server_name}")
+
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
             
@@ -341,7 +387,7 @@ class WigleBot(discord.Client):
                 if data.get("success") and "results" in data:
                     data["results"] = [result for result in data["results"] if result["userName"] != "anonymous"]
                     view = AllTime(data["results"])
-                    sent_message = await interaction.followup.send(embed=view.get_embed(), view=view)
+                    sent_message = await interaction.edit_original_response(embed=view.get_embed(), view=view)
                     view.message = sent_message
                 else:
                     message = data.get("message", "No rank data available.")
@@ -351,7 +397,12 @@ class WigleBot(discord.Client):
             await interaction.followup.send(str(e))
 
     async def fetch_wigle_month_rank(self, interaction: discord.Interaction):
-        logging.info("Fetching WiGLE monthly user rankings")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} requested monthly user rankings on {server_name}")
+
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
 
@@ -363,7 +414,13 @@ class WigleBot(discord.Client):
 
         try:
             async with self.session.get(req, headers=headers) as response:
-                if response.status != 200:
+                if response.status == 403:
+                    response_text = await response.text()  
+                    print(f"403 Forbidden error received for monthly rankings. Response: {response_text}")  
+                    logging.error(f"Error fetching WiGLE monthly ranking: {response.status}, Response: {response_text}")
+                    await interaction.followup.send(f"HTTP error {response.status}. Check the terminal for more details.")
+                    return
+                elif response.status != 200:
                     logging.error(f"Error fetching WiGLE monthly ranking: {response.status}")
                     await interaction.followup.send(f"HTTP error {response.status}")
                     return
@@ -372,7 +429,7 @@ class WigleBot(discord.Client):
                 if data.get("success") and "results" in data:
                     data["results"] = [result for result in data["results"] if result["userName"] != "anonymous"]
                     view = MonthRank(data["results"])
-                    await interaction.followup.send(embed=view.get_embed(), view=view)
+                    await interaction.edit_original_response(embed=view.get_embed(), view=view)
                 else:
                     message = data.get("message", "No rank data available.")
                     await interaction.followup.send(message)
@@ -380,8 +437,13 @@ class WigleBot(discord.Client):
             logging.error(f"Failed to fetch WiGLE monthly ranking: {e}")
             await interaction.followup.send(str(e))
 
+
     async def fetch_wigle_user_rank(self, interaction: discord.Interaction, group: str):
-        logging.info(f"Fetching WiGLE user ranks for group: {group}")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} checked user rankings for group '{group}' on {server_name}")
 
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
@@ -397,7 +459,7 @@ class WigleBot(discord.Client):
                 if group_data:
                     users = group_data.get("users", [])
                     view = UserRankView(users, group)
-                    await interaction.followup.send(embed=view.embed, view=view)
+                    await interaction.edit_original_response(embed=view.embed, view=view)
                 else:
                     await interaction.followup.send("Failed to fetch group data from the URL.")
             else:
@@ -408,8 +470,13 @@ class WigleBot(discord.Client):
             logging.warning(f"WiGLE group ID fetch error for {group}: {error_message}")
             await interaction.followup.send(error_message)
 
+
     async def show_credits(self, interaction: discord.Interaction):
-        logging.info("Displaying credits")
+        user = interaction.user
+        server = interaction.guild
+        server_name = server.name if server else "Direct Message"
+
+        logging.info(f"{user} viewed credits on {server_name}")
 
         if not interaction.response.is_done():
             await interaction.response.defer(ephemeral=False)
@@ -423,6 +490,7 @@ class WigleBot(discord.Client):
         color = 0x00FF00  # Bright Green
         embed = discord.Embed(title="Credits", description=credits_text, color=color)
         embed.set_footer(text="WiGLE Wardriving Bot by Kavitate & RocketGod")
+        server_count = len(self.guilds)
         
         ascii_art = (
             "```"
@@ -435,11 +503,12 @@ class WigleBot(discord.Client):
             "    \ \/\/ / | | | (_ | |__| _|  \n"
             "     \_/\_/  |_|  \___|____|___| \n"
             "   ```"
+            f"\nThis bot is used in {server_count} servers."
         )
         embed.add_field(name="", value=ascii_art, inline=False)
 
         view = HelpView()  
-        await interaction.followup.send(embed=embed, view=view)
+        await interaction.edit_original_response(embed=embed, view=view)
 
 
 class UserRankView(discord.ui.View):
@@ -468,7 +537,7 @@ class UserRankView(discord.ui.View):
         rankings = ""
         for i, user in enumerate(users_on_page, start + 1):
             username = user["username"]
-            discovered = user["discovered"]
+            discovered = format_number(user["discovered"]) 
             rank = p.ordinal(i)
             rankings += f"**{rank}:** {username} | **Total:** {discovered}\n"
 
@@ -544,9 +613,10 @@ class GroupView(View):
         rankings = ""
         for i, group in enumerate(group_slice, start=start + 1):
             groupName = group["groupName"]
-            discovered = group["discovered"]
+            discovered = format_number(group["discovered"])  
             rank = self.p.ordinal(i)
             rankings += f"**{rank}:** {groupName} | **Total:** {discovered}\n"
+
         embed = discord.Embed(title="WiGLE Group Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
         return embed
 
@@ -600,7 +670,7 @@ class AllTime(View):
         rankings = ""
         for i, results in enumerate(user_slice, start=start + 1):
             userName = results["userName"]
-            discoveredWiFiGPS = results["discoveredWiFiGPS"]
+            discoveredWiFiGPS = format_number(results["discoveredWiFiGPS"]) 
             rank = self.p.ordinal(i)
             rankings += f"**{rank}:** {userName} | **Total:** {discoveredWiFiGPS}\n"
         embed = discord.Embed(title="WiGLE All-Time User Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
@@ -656,7 +726,7 @@ class MonthRank(View):
         rankings = ""
         for i, results in enumerate(user_slice, start=start + 1):
             userName = results["userName"]
-            eventMonthCount = results["eventMonthCount"]
+            eventMonthCount = format_number(results["eventMonthCount"]) 
             rank = self.p.ordinal(i)
             rankings += f"**{rank}:** {userName} | **Total:** {eventMonthCount}\n"
         embed = discord.Embed(title="WiGLE Monthly User Rankings", description=rankings, color=EMBED_COLOR_GROUP_RANK)
