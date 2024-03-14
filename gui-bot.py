@@ -132,7 +132,6 @@ class WigleBot(discord.Client):
         self.wigle_api_key = wigle_api_key
 
     async def on_ready(self):
-        logging.info(f"Bot {self.user.name} is ready!")
         logging.info(f"Bot is in {len(self.guilds)} servers")
         self.session = aiohttp.ClientSession()
 
@@ -146,6 +145,13 @@ class WigleBot(discord.Client):
 
             owner_name = owner if isinstance(owner, str) else f"{owner.name}#{owner.discriminator}"
             logging.info(f" - {guild.name} (Owner: {owner_name})")
+
+        server_count = len(self.guilds)
+        activity_text = f"/wigle on {server_count} servers"
+        await self.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=activity_text))
+
+        logging.info(f"Bot {self.user.name} is ready!")
+
 
     async def close(self):
         try:
