@@ -622,40 +622,25 @@ async def monthly(interaction: discord.Interaction):
 async def help_command(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=False)
 
-    # Create a string that holds your help message text
-    help_text = (
-        "**Command List**\n"
-        "`/user <username>` - Get stats for a WiGLE user.\n"
-        "`/grouprank` - Get WiGLE group rankings.\n"
-        "`/userrank` - Get WiGLE user rankings for a group.\n"
-        "`/alltime` - Get WiGLE All-Time user rankings.\n"
-        "`/monthly` - Get WiGLE monthly user rankings.\n"
-        "`/help` - Shows this help message.\n\n"
-    )
+    help_text = ("**Command List**\n"
+                 "`/user <username>` - Get stats for a WiGLE user.\n"
+                 "`/grouprank` - Get WiGLE group rankings.\n"
+                 "`/userrank` - Get WiGLE user rankings for a group.\n"
+                 "`/alltime` - Get WiGLE All-Time user rankings.\n"
+                 "`/monthly` - Get WiGLE monthly user rankings.\n"
+                 "`/help` - Shows this help message.\n\n")
 
     color = 0x00FF00  # Bright Green
 
-    embed = discord.Embed(title="WiGLE Bot Help", description=help_text, color=color)
+    embed = discord.Embed(title="WiGLE Bot Help",
+                          description=help_text,
+                          color=color)
     embed.set_footer(text="WiGLE Wardriving Bot by Kavitate & RocketGod")
 
-    ascii_art = (
-        "```"
-        "                       (         \n"
-        "    (  (        (      )\ )      \n"
-        "    )\))(   '(  )\ )  (()/( (    \n"
-        "   ((_)()\ ) )\(()/(   /(_)))\   \n"
-        "   _(())\_)(|(_)/(_))_(_)) ((_)  \n"
-        "   \ \((_)/ /(_|_)) __| |  | __| \n"
-        "    \ \/\/ / | | | (_ | |__| _|  \n"
-        "     \_/\_/  |_|  \___|____|___| \n"
-        "   ```"
-    )
-    embed.add_field(name="", value=ascii_art, inline=False)
+    image_url = "https://i.imgur.com/90kBgvJ.png"
+    embed.set_image(url=image_url)
 
-    # Create the view
     view = HelpView()
-
-    # Send the embed as a follow-up to the interaction
     await interaction.followup.send(embed=embed, view=view)
 
 
